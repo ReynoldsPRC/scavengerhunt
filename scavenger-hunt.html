@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Library Scavenger Hunt — Parham Road Campus</title>
+<style>
+:root{
+  --table:#2C3330;
+  --table-deep:#222825;
+  --card:#EDE3CC;
+  --card-edge:#D8C9A6;
+  --card-rule:#C3B189;
+  --ink:#2A2419;
+  --ink-soft:#6A5F49;
+  --stamp:#5B3E96;
+  --serif:"Iowan Old Style","Charter","Palatino",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --type:"American Typewriter","Courier New",monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--table);
+  color:var(--card);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.5;
+  -webkit-text-size-adjust:100%;
+  overscroll-behavior-y:contain;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+.screen{display:none;min-height:100%;padding:24px 20px 64px;max-width:760px;margin:0 auto}
+.screen.on{display:block}
+
+/* ---------- header ---------- */
+.bar{display:flex;align-items:baseline;gap:14px;margin-bottom:26px;flex-wrap:wrap}
+.bar h1{font-family:var(--serif);font-size:26px;font-weight:400;margin:0;letter-spacing:.01em}
+.chip{
+  font-family:var(--type);font-size:13px;letter-spacing:.08em;
+  border:1px solid rgba(237,227,204,.45);border-radius:2px;
+  padding:3px 9px;background:none;color:rgba(237,227,204,.8);
+}
+.tally{font-family:var(--type);font-size:14px;color:rgba(237,227,204,.6);margin-left:auto}
+
+/* ---------- team picker ---------- */
+.ask{font-family:var(--serif);font-size:30px;line-height:1.25;margin:12px 0 6px;font-weight:400}
+.ask-sub{color:rgba(237,227,204,.65);margin:0 0 30px;font-size:16px;max-width:46ch}
+.spines{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
+.spine{
+  background:var(--card);color:var(--ink);border:none;
+  border-left:9px solid var(--stamp);
+  border-radius:1px;
+  padding:20px 14px;text-align:left;
+  font-family:var(--serif);font-size:21px;
+  box-shadow:0 2px 0 var(--card-edge);
+  transition:transform .12s ease;
+}
+.spine:active{transform:translateY(2px);box-shadow:0 0 0 var(--card-edge)}
+.spine small{display:block;font-family:var(--type);font-size:11px;letter-spacing:.1em;color:var(--ink-soft);margin-top:5px}
+
+/* ---------- task list ---------- */
+.cards{display:flex;flex-direction:column;gap:14px}
+.card{
+  position:relative;display:block;width:100%;text-align:left;
+  background:var(--card);color:var(--ink);border:none;border-radius:2px;
+  padding:18px 20px 18px 62px;
+  box-shadow:0 2px 0 var(--card-edge);
+  transition:transform .12s ease;
+  overflow:hidden;
+}
+.card:active{transform:translateY(2px);box-shadow:0 0 0 var(--card-edge)}
+.card::before{
+  content:attr(data-n);
+  position:absolute;left:0;top:0;bottom:0;width:44px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--type);font-size:17px;color:var(--ink-soft);
+  border-right:1px solid var(--card-rule);
+}
+.card h3{font-family:var(--serif);font-size:19px;font-weight:400;margin:0 0 3px}
+.card p{margin:0;font-size:14px;color:var(--ink-soft);line-height:1.45}
+.card.done h3,.card.done p{opacity:.5}
+
+.stamp{
+  position:absolute;right:14px;top:50%;
+  transform:translateY(-50%) rotate(-7deg);
+  border:2px solid var(--stamp);border-radius:3px;
+  color:var(--stamp);font-family:var(--type);
+  padding:5px 9px 4px;text-align:center;
+  line-height:1.1;pointer-events:none;
+  background:rgba(237,227,204,.55);
+}
+.stamp b{display:block;font-size:14px;font-weight:400;letter-spacing:.14em}
+.stamp span{display:block;font-size:10px;letter-spacing:.06em;margin-top:2px}
+@keyframes land{
+  0%{transform:translateY(-50%) rotate(-7deg) scale(2.6);opacity:0}
+  60%{transform:translateY(-50%) rotate(-7deg) scale(.94);opacity:1}
+  100%{transform:translateY(-50%) rotate(-7deg) scale(1);opacity:1}
+}
+.stamp.fresh{animation:land .26s cubic-bezier(.3,1.3,.6,1) both}
+@media (prefers-reduced-motion:reduce){
+  .stamp.fresh{animation:none}
+  .spine,.card{transition:none}
+}
+
+/* ---------- task detail ---------- */
+.sheet{background:var(--card);color:var(--ink);border-radius:2px;padding:24px 22px 26px;box-shadow:0 2px 0 var(--card-edge)}
+.sheet .num{font-family:var(--type);font-size:13px;letter-spacing:.12em;color:var(--ink-soft);margin:0 0 8px}
+.sheet h2{font-family:var(--serif);font-size:26px;font-weight:400;margin:0 0 12px;line-height:1.2}
+.sheet .body{font-size:17px;line-height:1.55;margin:0 0 22px;max-width:62ch}
+.sheet .body b{font-weight:600}
+hr.rule{border:none;border-top:1px solid var(--card-rule);margin:22px 0}
+
+.pocket{
+  border:2px dashed var(--card-rule);border-radius:2px;
+  padding:26px 16px;text-align:center;color:var(--ink-soft);
+  font-size:15px;margin-bottom:14px;
+}
+.shot{width:100%;border-radius:2px;display:block;margin-bottom:14px;border:1px solid var(--card-rule)}
+.pair{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.btn{
+  flex:1 1 140px;background:var(--ink);color:var(--card);border:none;border-radius:2px;
+  padding:14px 16px;font-size:16px;text-align:center;
+}
+.btn.quiet{background:none;color:var(--ink);border:1px solid var(--ink);}
+.btn:active{opacity:.75}
+
+label.f{display:block;margin-bottom:16px}
+label.f span{display:block;font-size:15px;margin-bottom:6px}
+input.f,textarea.f{
+  width:100%;font:inherit;font-size:17px;color:var(--ink);
+  background:rgba(255,255,255,.5);
+  border:none;border-bottom:1px solid var(--ink-soft);border-radius:0;
+  padding:9px 8px;-webkit-appearance:none;
+}
+textarea.f{min-height:76px;resize:vertical;border:1px solid var(--ink-soft);border-radius:2px}
+input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px}
+
+.save{
+  width:100%;background:var(--stamp);color:#fff;border:none;border-radius:2px;
+  padding:17px;font-size:18px;font-family:var(--type);letter-spacing:.06em;
+}
+.save:disabled{opacity:.35}
+.back{background:none;border:none;padding:6px 0;margin-bottom:16px;color:rgba(237,227,204,.75);font-size:16px}
+
+/* ---------- present mode ---------- */
+#present{max-width:none;padding:0;background:var(--table-deep)}
+.slide{min-height:100vh;display:flex;flex-direction:column;padding:26px 30px 22px}
+.slide .cap{font-family:var(--type);font-size:14px;letter-spacing:.1em;color:rgba(237,227,204,.55)}
+.slide h2{font-family:var(--serif);font-weight:400;font-size:clamp(24px,4.2vw,40px);margin:6px 0 16px}
+.slide .frame{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.slide .frame img{max-width:100%;max-height:100%;object-fit:contain;border-radius:2px}
+.slide .frame .none{color:rgba(237,227,204,.4);font-family:var(--type)}
+.slide .ans{margin-top:18px;font-family:var(--serif);font-size:clamp(17px,2.4vw,24px);line-height:1.4}
+.slide .ans em{font-style:normal;color:rgba(237,227,204,.55);font-family:var(--sans);font-size:14px;display:block}
+.nav{display:flex;gap:12px;margin-top:20px;align-items:center}
+.nav button{background:none;border:1px solid rgba(237,227,204,.4);border-radius:2px;padding:11px 20px;font-size:16px}
+.nav .pos{font-family:var(--type);font-size:14px;color:rgba(237,227,204,.5);margin-left:auto}
+
+/* ---------- staff ---------- */
+.staff{margin-top:44px;padding-top:18px;border-top:1px solid rgba(237,227,204,.15)}
+.staff button{background:none;border:none;padding:0;color:rgba(237,227,204,.45);font-size:14px;text-decoration:underline}
+.warn{color:#E7B7B7;font-size:15px;margin:10px 0}
+.note{color:rgba(237,227,204,.5);font-size:14px;line-height:1.5;margin-top:8px;max-width:52ch}
+
+/* ---------- print ---------- */
+#printarea{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  .screen{display:none!important}
+  #printarea{display:block;padding:0}
+  .prt{page-break-inside:avoid;margin-bottom:22px;border-bottom:1px solid #999;padding-bottom:16px}
+  .prt h3{font-family:var(--serif);font-size:16pt;margin:0 0 4px;font-weight:400}
+  .prt p{font-size:11pt;margin:2px 0}
+  .prt img{max-width:5in;max-height:4in;display:block;margin:8px 0}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ TEAM PICKER ============ -->
+<section id="pick" class="screen on">
+  <h1 class="ask">Which team is this iPad?</h1>
+  <p class="ask-sub">Pick once at the start. Everything you take stays on this iPad — nothing is posted anywhere.</p>
+  <div class="spines" id="spines"></div>
+
+  <div class="staff">
+    <button id="showStaff">Staff options</button>
+    <div id="staffPanel" hidden>
+      <p class="warn">Clearing erases every photo and answer on this iPad.</p>
+      <div class="pair">
+        <button class="btn quiet" id="clearBtn" style="color:#E7B7B7;border-color:#E7B7B7">Clear this iPad</button>
+      </div>
+      <p class="note">Do this after each section, before handing the iPad to the next class. There is no undo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TASK LIST ============ -->
+<section id="list" class="screen">
+  <div class="bar">
+    <h1>Scavenger Hunt</h1>
+    <button class="chip" id="teamChip">Team —</button>
+    <span class="tally" id="tally"></span>
+  </div>
+  <div class="cards" id="cards"></div>
+  <div class="staff">
+    <div class="pair">
+      <button class="btn quiet" id="presentBtn" style="color:var(--card);border-color:rgba(237,227,204,.5)">Show our work</button>
+      <button class="btn quiet" id="printBtn" style="color:rgba(237,227,204,.6);border-color:rgba(237,227,204,.3)">Print / save PDF</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TASK DETAIL ============ -->
+<section id="task" class="screen">
+  <button class="back" id="backBtn">Back to the list</button>
+  <div class="sheet" id="sheet"></div>
+</section>
+
+<!-- ============ PRESENT ============ -->
+<section id="present" class="screen">
+  <div class="slide" id="slide"></div>
+</section>
+
+<div id="printarea"></div>
+
+<input type="file" accept="image/*" capture="environment" id="camIn" hidden>
+<input type="file" accept="image/*" id="libIn" hidden>
+
+<script>
+/* =====================================================================
+   TASKS — edit here. Nothing below this block needs changing.
+
+   Each team is a list of tasks. Per task:
+     title   short name, shown on the card and in the presentation
+     body    the instructions the students read
+     photo   true if a photo is required (false = text only)
+     fields  the boxes students type into; [] for none
+             each field: {label:"...", long:true}   long -> big text box
+   ===================================================================== */
+
+const TASKS = {
+1:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>legal profession</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find an article",photo:true,fields:[{label:"Article title"},{label:"MLA citation",long:true}],
+  body:"From the home page go to <b>Research &rarr; Databases</b> and open <b>MasterFILE Premier</b>. Find a full-text article on <b>lawyer AND career</b> from the last five years. Screenshot the MLA citation."},
+ {title:"Printing",photo:true,fields:[{label:"What login do you use?"},{label:"Cost of a black &amp; white copy"}],
+  body:"Ask someone at a first-floor service desk two things about <b>PaperCut</b>: what login you use, and what a black-and-white copy costs. Photograph a teammate at the pay station."},
+ {title:"The ESL collection",photo:true,fields:[{label:"What does ESL stand for?"},{label:"Where in the library is it?"}],
+  body:"Find the ESL collection. Work out what ESL stands for and who the collection is for. Photograph a teammate holding a book from it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."}
+],
+2:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>nursing profession</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find a film",photo:true,fields:[{label:"Film title"},{label:"MLA citation",long:true}],
+  body:"Go to <b>Research &rarr; Databases</b> and open <b>Films on Demand</b>. Search <b>nurses nursing</b> and open a film that looks interesting. Use the <b>Cite</b> option and screenshot the MLA citation."},
+ {title:"Borrow a laptop",photo:true,fields:[{label:"What do you need to check one out?"},{label:"How long can you keep it?"}],
+  body:"The library lends laptops. Ask a staff member at the desk near the entrance what you need to check one out and how long you can keep it. Photograph your team with the staff member &mdash; ask first."},
+ {title:"Group study rooms",photo:true,fields:[{label:"What do you need to reserve one?"},{label:"How long can you have it?"}],
+  body:"Go downstairs and ask a staff member to unlock a group study room for you. Ask what you need in order to reserve one and how long you can keep it. Photograph your team in the room."}
+],
+3:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>social work</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find a newspaper article",photo:true,fields:[{label:"Article title"},{label:"MLA citation",long:true}],
+  body:"Go to <b>Research &rarr; Databases</b> and open <b>Access World News</b>. Scroll to <b>Suggested Topics</b>, click <b>Careers</b>, then pick a job title and open an article. Screenshot the MLA citation."},
+ {title:"Checking out books",photo:true,fields:[{label:"How many at one time?"},{label:"What do you need?"}],
+  body:"Ask a staff member at the desk near the entrance how many books you can have out at once and what you need in order to borrow them. Photograph your team with the staff member &mdash; ask first."},
+ {title:"Recently added books",photo:true,fields:[{label:"Title"},{label:"Author"}],
+  body:"Find the recently added books. These are the newest things in the building. Pick one you would actually check out and photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."}
+],
+4:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>writing careers</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find a reference article",photo:true,fields:[{label:"Article title"},{label:"MLA citation",long:true}],
+  body:"Go to <b>Research &rarr; Databases</b> and open <b>Gale eBooks</b>. Change the search menu from <b>Basic Search</b> to <b>Publication</b>, then search <b>career information center</b>. Open an article and screenshot the MLA citation."},
+ {title:"Returning books after hours",photo:true,fields:[],
+  body:"The library closes, but you still need to return a book. Where does it go? Look <b>outside the library</b>. Photograph your team showing the answer."},
+ {title:"Chat with a librarian",photo:true,fields:[{label:"Librarian's first name"},{label:"Which library do they work for?"}],
+  body:"On the home page, click <b>Chat Now</b>. Tell the librarian you are doing a library scavenger hunt, then ask their first name and which library they work for. Screenshot the chat.<br><br>Use a first name only. You do not need to give a real email address."}
+],
+5:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>cooking</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find a viewpoint",photo:true,fields:[{label:"Chapter title"},{label:"MLA citation",long:true}],
+  body:"From <b>Quick Links</b> open <b>Opposing Viewpoints</b> and search <b>local food movement</b>. Scroll to the <b>Viewpoints</b> results and open a chapter. Screenshot the MLA citation."},
+ {title:"Tutoring",photo:true,fields:[{label:"When can you get help with writing or math?"}],
+  body:"Find the Tutoring Services area. Work out when you could come in for help with a writing assignment or a math class. Photograph a teammate next to the hours sign."},
+ {title:"Graphic novels",photo:true,fields:[{label:"Title"},{label:"Where in the library is it?"}],
+  body:"There is a graphic novel collection. Find it, pick one, and photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."}
+],
+6:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>teaching profession</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Free ebooks and audiobooks",photo:true,fields:[{label:"What did you pick?"},{label:"Book, audiobook or magazine?"}],
+  body:"Go to <b>Research &rarr; Databases</b> and open <b>OverDrive</b>. This is the same service public libraries use, and it is free to you. Find something you would actually read or listen to and screenshot it."},
+ {title:"Group study rooms",photo:true,fields:[{label:"What do you need to reserve one?"},{label:"How long can you have it?"}],
+  body:"Go downstairs and ask a staff member to unlock a group study room for you. Ask what you need in order to reserve one and how long you can keep it. Photograph your team in the room."},
+ {title:"Workshops",photo:true,fields:[{label:"Name of the next workshop"},{label:"When is it?"}],
+  body:"Scroll down the library home page until you find the workshops. Find the next one scheduled. Screenshot it."}
+],
+7:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>entrepreneurship</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find an ebook",photo:true,fields:[{label:"Book title"},{label:"One chapter that looks useful"}],
+  body:"Go to <b>Research &rarr; Databases</b> and open <b>O'Reilly for Higher Education</b>. Search <b>career development</b> and open a book that looks interesting. Screenshot its table of contents."},
+ {title:"Popular reading",photo:true,fields:[{label:"Title"},{label:"Author"}],
+  body:"The library keeps a popular reading collection &mdash; current fiction and nonfiction, the sort of thing you would find in a bookstore rather than on a syllabus. Find it and pick something out. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Checking out books",photo:true,fields:[{label:"How many at one time?"},{label:"What do you need?"}],
+  body:"Ask a staff member at the desk near the entrance how many books you can have out at once and what you need in order to borrow them. Photograph your team with the staff member &mdash; ask first."}
+],
+8:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>science careers</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find a reference article",photo:true,fields:[{label:"Article title"},{label:"MLA citation",long:true}],
+  body:"Go to <b>Research &rarr; Databases</b> and open <b>Gale Science</b>. Search <b>science careers</b> and look for the <b>Reference</b> results. Open one and screenshot the MLA citation."},
+ {title:"Printing",photo:true,fields:[{label:"What login do you use?"},{label:"Cost of a black &amp; white copy"}],
+  body:"Ask someone at a first-floor service desk two things about <b>PaperCut</b>: what login you use, and what a black-and-white copy costs. Photograph a teammate at the pay station."},
+ {title:"The reference collection",photo:true,fields:[{label:"What is the set called?"},{label:"How many volumes?"}],
+  body:"Find the reference collection. These books do not leave the library &mdash; you use them here and put them back. Find the multi-volume set with the most volumes you can spot, and photograph a teammate holding volume 1.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."}
+],
+9:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>accounting</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find an article",photo:true,fields:[{label:"Article title"},{label:"MLA citation",long:true}],
+  body:"Go to <b>Research &rarr; Databases</b> and open <b>Associates Program Source</b>. Find a full-text article on <b>accountant AND career</b> from the last five years. Use <b>Cite</b> in the Tools menu and screenshot the MLA citation."},
+ {title:"Textbooks on reserve",photo:true,fields:[{label:"What is the borrowing policy?",long:true}],
+  body:"Some textbooks are kept behind the desk on reserve. Ask a staff member what the policy is for borrowing one. Photograph where the reserve textbooks are kept."},
+ {title:"The exercise bike",photo:true,fields:[{label:"Where in the library is it?"}],
+  body:"Somewhere in this building there is a bike you can pedal while you read. Find it. Photograph a teammate on it, holding a book."}
+],
+10:[
+ {title:"Team photo",photo:true,fields:[],
+  body:"Before you start, find a spot on the first floor where you would actually want to sit. Take a team photo there."},
+ {title:"Find a book on the shelf",photo:true,fields:[{label:"Call number"},{label:"Title"}],
+  body:"From the library home page, search for a book about <b>engineering</b> held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
+ {title:"Find an ebook",photo:true,fields:[{label:"Book title"}],
+  body:"Go to <b>Research &rarr; Databases</b> and open <b>ENGnetBASE</b>. Find an ebook on <b>engineer careers</b> and open one that looks interesting. Screenshot it."},
+ {title:"Databases from home",photo:true,fields:[{label:"What login do you use off campus?"}],
+  body:"You are at home at midnight and need an article. Ask someone at a first-floor service desk what login gets you into the databases from off campus. Photograph your team with the staff member &mdash; ask first."},
+ {title:"Research guides",photo:true,fields:[{label:"One thing on the guide you would use"}],
+  body:"Go to <b>Research &rarr; Research Guides</b> and find the <b>Career Development</b> guide. A librarian built it. Screenshot the part you would actually use."}
+]
+};
+
+/* =====================================================================
+   Everything below is machinery.
+   ===================================================================== */
+
+const MAX_PX = 1600, JPEG_Q = 0.82;
+let team = null, idx = 0, slideAt = 0, db = null, freshStamp = -1;
+
+/* ---------- storage ---------- */
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open('scavenger-hunt',1);
+    r.onupgradeneeded = e =>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('answers')) d.createObjectStore('answers');
+      if(!d.objectStoreNames.contains('meta')) d.createObjectStore('meta');
+    };
+    r.onsuccess = e => res(e.target.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function put(store,key,val){
+  return new Promise((res,rej)=>{
+    const t = db.transaction(store,'readwrite');
+    t.objectStore(store).put(val,key);
+    t.oncomplete = res; t.onerror = ()=>rej(t.error);
+  });
+}
+function get(store,key){
+  return new Promise((res,rej)=>{
+    const t = db.transaction(store,'readonly');
+    const q = t.objectStore(store).get(key);
+    q.onsuccess = ()=>res(q.result); q.onerror = ()=>rej(q.error);
+  });
+}
+function wipe(){
+  return new Promise((res,rej)=>{
+    const t = db.transaction(['answers','meta'],'readwrite');
+    t.objectStore('answers').clear();
+    t.objectStore('meta').clear();
+    t.oncomplete = res; t.onerror = ()=>rej(t.error);
+  });
+}
+const key = i => team + ':' + i;
+
+/* answers cache for the current team */
+let A = {};
+async function loadTeam(){
+  A = {};
+  for(let i=0;i<TASKS[team].length;i++){
+    const v = await get('answers',key(i));
+    if(v) A[i] = v;
+  }
+}
+
+/* ---------- images ---------- */
+async function shrink(file){
+  let src;
+  try{ src = await createImageBitmap(file,{imageOrientation:'from-image'}); }
+  catch(e){
+    src = await new Promise((res,rej)=>{
+      const im = new Image(), u = URL.createObjectURL(file);
+      im.onload = ()=>{ URL.revokeObjectURL(u); res(im); };
+      im.onerror = ()=>{ URL.revokeObjectURL(u); rej(new Error('bad image')); };
+      im.src = u;
+    });
+  }
+  const w0 = src.width, h0 = src.height;
+  const s = Math.min(1, MAX_PX/Math.max(w0,h0));
+  const c = document.createElement('canvas');
+  c.width = Math.round(w0*s); c.height = Math.round(h0*s);
+  c.getContext('2d').drawImage(src,0,0,c.width,c.height);
+  if(src.close) src.close();
+  return new Promise(res => c.toBlob(b=>res(b),'image/jpeg',JPEG_Q));
+}
+
+/* ---------- screens ---------- */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
+  window.scrollTo(0,0);
+}
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- team picker ---------- */
+function drawPicker(){
+  document.getElementById('spines').innerHTML =
+    Array.from({length:10},(_,i)=>i+1).map(n=>
+      `<button class="spine" data-team="${n}">Team ${n}<small>${TASKS[n].length} things to do</small></button>`
+    ).join('');
+}
+
+/* ---------- task list ---------- */
+function drawList(){
+  const t = TASKS[team];
+  document.getElementById('teamChip').textContent = 'Team ' + team;
+  const done = t.filter((_,i)=>A[i]&&A[i].done).length;
+  document.getElementById('tally').textContent = done + ' of ' + t.length + ' stamped';
+  document.getElementById('cards').innerHTML = t.map((task,i)=>{
+    const a = A[i];
+    const on = a && a.done;
+    const stamp = on
+      ? `<span class="stamp${i===freshStamp?' fresh':''}"><b>DONE</b><span>${esc(a.when)}</span></span>`
+      : '';
+    return `<button class="card${on?' done':''}" data-i="${i}" data-n="${i===0?'\u2605':i}">
+      <h3>${esc(task.title)}</h3><p>${on?'Tap to review or redo':'Not started'}</p>${stamp}</button>`;
+  }).join('');
+  freshStamp = -1;
+  document.getElementById('presentBtn').disabled = done===0;
+}
+
+/* ---------- task detail ---------- */
+let pending = null;   // Blob waiting to be saved
+function drawTask(){
+  const task = TASKS[team][idx], a = A[idx] || {};
+  pending = a.photo || null;
+  const shot = pending
+    ? `<img class="shot" id="preview" alt="Your photo">`
+    : `<div class="pocket" id="preview">No photo yet</div>`;
+  const fields = task.fields.map((f,j)=>{
+    const v = a.text ? (a.text[j]||'') : '';
+    const input = f.long
+      ? `<textarea class="f" data-j="${j}">${esc(v)}</textarea>`
+      : `<input class="f" type="text" data-j="${j}" value="${esc(v)}">`;
+    return `<label class="f"><span>${f.label}</span>${input}</label>`;
+  }).join('');
+  document.getElementById('sheet').innerHTML = `
+    <p class="num">${idx===0?'To start':'Task '+idx+' of '+(TASKS[team].length-1)}</p>
+    <h2>${esc(task.title)}</h2>
+    <div class="body">${task.body}</div>
+    ${task.photo?`<hr class="rule">${shot}
+      <div class="pair">
+        <button class="btn" id="camBtn">Take a photo</button>
+        <button class="btn quiet" id="libBtn">Use a screenshot</button>
+      </div>`:''}
+    ${fields?`<hr class="rule">${fields}`:''}
+    <button class="save" id="saveBtn">Stamp it</button>`;
+  if(pending) document.getElementById('preview').src = URL.createObjectURL(pending);
+  wireTask();
+}
+function wireTask(){
+  const cam = document.getElementById('camBtn'), lib = document.getElementById('libBtn');
+  if(cam) cam.onclick = ()=>document.getElementById('camIn').click();
+  if(lib) lib.onclick = ()=>document.getElementById('libIn').click();
+  document.getElementById('saveBtn').onclick = saveTask;
+}
+async function gotFile(e){
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!f) return;
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Working\u2026';
+  try{
+    pending = await shrink(f);
+    const old = document.getElementById('preview');
+    const img = document.createElement('img');
+    img.className = 'shot'; img.id = 'preview'; img.alt = 'Your photo';
+    img.src = URL.createObjectURL(pending);
+    old.replaceWith(img);
+  }catch(err){
+    alert('That photo would not open. Try taking it again.');
+  }
+  btn.disabled = false; btn.textContent = 'Stamp it';
+}
+async function saveTask(){
+  const task = TASKS[team][idx];
+  const text = {};
+  document.querySelectorAll('#sheet .f[data-j]').forEach(el=>{ text[el.dataset.j] = el.value.trim(); });
+  const missingPhoto = task.photo && !pending;
+  const missingText  = task.fields.some((f,j)=>!text[j]);
+  if(missingPhoto || missingText){
+    const what = [missingPhoto?'a photo':null, missingText?'every box filled in':null].filter(Boolean).join(' and ');
+    if(!confirm('This one still needs ' + what + '. Stamp it anyway?')) return;
+  }
+  const when = new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  const rec = {photo:pending, text, done:true, when};
+  await put('answers',key(idx),rec);
+  A[idx] = rec;
+  freshStamp = idx;
+  drawList(); show('list');
+}
+
+/* ---------- present ---------- */
+function drawSlide(){
+  const order = TASKS[team].map((t,i)=>i).filter(i=>A[i]&&A[i].done);
+  if(!order.length){ show('list'); return; }
+  if(slideAt<0) slideAt = 0;
+  if(slideAt>=order.length) slideAt = order.length-1;
+  const i = order[slideAt], task = TASKS[team][i], a = A[i];
+  const answers = task.fields.map((f,j)=>
+    `<div class="ans"><em>${f.label}</em>${esc((a.text&&a.text[j])||'\u2014')}</div>`).join('');
+  document.getElementById('slide').innerHTML = `
+    <div class="cap">Team ${team}</div>
+    <h2>${esc(task.title)}</h2>
+    <div class="frame">${a.photo?`<img id="slideimg" alt="">`:`<span class="none">no photo</span>`}</div>
+    ${answers}
+    <div class="nav">
+      <button id="prevS">Previous</button>
+      <button id="nextS">Next</button>
+      <button id="exitS">Done</button>
+      <span class="pos">${slideAt+1} / ${order.length}</span>
+    </div>`;
+  if(a.photo) document.getElementById('slideimg').src = URL.createObjectURL(a.photo);
+  document.getElementById('prevS').onclick = ()=>{ slideAt--; drawSlide(); };
+  document.getElementById('nextS').onclick = ()=>{ slideAt++; drawSlide(); };
+  document.getElementById('exitS').onclick = ()=>show('list');
+}
+
+/* ---------- print ---------- */
+function buildPrint(){
+  const el = document.getElementById('printarea');
+  el.innerHTML = `<h2 style="font-family:var(--serif);font-weight:400">Team ${team} &mdash; Library Scavenger Hunt</h2>` +
+    TASKS[team].map((task,i)=>{
+      const a = A[i]; if(!a||!a.done) return '';
+      const ans = task.fields.map((f,j)=>`<p><b>${f.label}:</b> ${esc((a.text&&a.text[j])||'')}</p>`).join('');
+      const img = a.photo?`<img src="${URL.createObjectURL(a.photo)}" alt="">`:'';
+      return `<div class="prt"><h3>${esc(task.title)}</h3>${img}${ans}</div>`;
+    }).join('');
+}
+
+/* ---------- wiring ---------- */
+document.getElementById('spines').onclick = async e=>{
+  const b = e.target.closest('.spine'); if(!b) return;
+  team = Number(b.dataset.team);
+  await put('meta','team',team);
+  await loadTeam(); drawList(); show('list');
+};
+document.getElementById('cards').onclick = e=>{
+  const c = e.target.closest('.card'); if(!c) return;
+  idx = Number(c.dataset.i); drawTask(); show('task');
+};
+document.getElementById('backBtn').onclick = ()=>{ drawList(); show('list'); };
+document.getElementById('teamChip').onclick = async ()=>{
+  if(confirm('Switch to a different team? Your work stays saved.')) show('pick');
+};
+document.getElementById('presentBtn').onclick = ()=>{ slideAt=0; drawSlide(); show('present'); };
+document.getElementById('printBtn').onclick = ()=>{ buildPrint(); setTimeout(()=>window.print(),150); };
+document.getElementById('camIn').onchange = gotFile;
+document.getElementById('libIn').onchange = gotFile;
+document.getElementById('showStaff').onclick = ()=>{
+  const p = document.getElementById('staffPanel');
+  p.hidden = !p.hidden;
+};
+document.getElementById('clearBtn').onclick = async ()=>{
+  if(!confirm('Erase every photo and answer on this iPad?')) return;
+  if(!confirm('Last check. This cannot be undone.')) return;
+  await wipe(); A = {}; team = null;
+  alert('Cleared. Ready for the next class.');
+  show('pick');
+};
+
+/* ---------- boot ---------- */
+(async function(){
+  try{
+    db = await openDB();
+  }catch(e){
+    document.body.innerHTML = '<div class="screen on"><h1 class="ask">This iPad cannot save your work.</h1>'+
+      '<p class="ask-sub">Private Browsing is probably switched on in Safari. Turn it off, then reload this page. Ask a librarian if you are stuck.</p></div>';
+    return;
+  }
+  drawPicker();
+  const saved = await get('meta','team');
+  if(saved && TASKS[saved]){ team = saved; await loadTeam(); drawList(); show('list'); }
+})();
+</script>
+</body>
+</html>
