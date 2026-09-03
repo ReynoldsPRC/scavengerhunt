@@ -172,6 +172,7 @@ input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px
 
 /* ---------- print ---------- */
 #printarea{display:none}
+.hidefile{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
 @media print{
   body{background:#fff;color:#000}
   .screen{display:none!important}
@@ -250,8 +251,8 @@ input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px
 
 <div id="printarea"></div>
 
-<input type="file" accept="image/*" capture="environment" id="camIn" hidden>
-<input type="file" accept="image/*" id="libIn" hidden>
+<input type="file" accept="image/*" capture="environment" id="camIn" class="hidefile">
+<input type="file" accept="image/*" id="libIn" class="hidefile">
 
 <script>
 /* =====================================================================
@@ -490,18 +491,46 @@ function drawList(){
   document.getElementById('cards').innerHTML = t.map((task,i)=>{
     const a = A[i];
     const on = a && a.done;
+    const started = a && !a.done && (a.photo || Object.values(a.text||{}).some(v=>v));
     const stamp = on
       ? `<span class="stamp${i===freshStamp?' fresh':''}"><b>DONE</b><span>${esc(a.when)}</span></span>`
       : '';
     return `<button class="card${on?' done':''}" data-i="${i}" data-n="${i===0?'\u2605':i}">
-      <h3>${esc(task.title)}</h3><p>${on?'Tap to review or redo':'Not started'}</p>${stamp}</button>`;
+      <h3>${esc(task.title)}</h3><p>${on?'Tap to review or redo':started?'Saved \u2014 not stamped yet':'Not started'}</p>${stamp}</button>`;
   }).join('');
   freshStamp = -1;
   document.getElementById('presentBtn').disabled = done===0;
 }
 
 /* ---------- task detail ---------- */
-let pending = null;   // Blob waiting to be saved
+let pending = null;      // Blob for the task on screen
+let draftTimer = null;
+
+function readFields(){
+  const text = {};
+  document.querySelectorAll('#sheet .f[data-j]').forEach(el=>{ text[el.dataset.j] = el.value.trim(); });
+  return text;
+}
+/* Saves whatever is on screen without stamping it, so a refresh loses nothing. */
+async function saveDraft(){
+  if(!db || team === null || !document.getElementById('sheet').children.length) return;
+  const prev = A[idx] || {};
+  const rec = {photo:pending, text:readFields(), done:!!prev.done, when:prev.when};
+  try{ await put('answers',key(idx),rec); A[idx] = rec; }catch(e){}
+}
+function queueDraft(){ clearTimeout(draftTimer); draftTimer = setTimeout(saveDraft,600); }
+
+/* Rebuild the file input before each use — iOS otherwise holds onto focus
+   and the keyboard stops opening for text boxes afterwards. */
+function pickFile(id){
+  const old = document.getElementById(id);
+  const fresh = old.cloneNode(true);
+  fresh.value = '';
+  old.replaceWith(fresh);
+  fresh.addEventListener('change', gotFile);
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  fresh.click();
+}
 function drawTask(){
   const task = TASKS[team][idx], a = A[idx] || {};
   pending = a.photo || null;
@@ -531,9 +560,13 @@ function drawTask(){
 }
 function wireTask(){
   const cam = document.getElementById('camBtn'), lib = document.getElementById('libBtn');
-  if(cam) cam.onclick = ()=>document.getElementById('camIn').click();
-  if(lib) lib.onclick = ()=>document.getElementById('libIn').click();
+  if(cam) cam.onclick = ()=>pickFile('camIn');
+  if(lib) lib.onclick = ()=>pickFile('libIn');
   document.getElementById('saveBtn').onclick = saveTask;
+  document.querySelectorAll('#sheet .f[data-j]').forEach(el=>{
+    el.addEventListener('input', queueDraft);
+    el.addEventListener('blur', saveDraft);
+  });
 }
 async function gotFile(e){
   const f = e.target.files && e.target.files[0];
@@ -548,15 +581,17 @@ async function gotFile(e){
     img.className = 'shot'; img.id = 'preview'; img.alt = 'Your photo';
     img.src = URL.createObjectURL(pending);
     old.replaceWith(img);
+    await saveDraft();
   }catch(err){
     alert('That photo would not open. Try taking it again.');
   }
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
   btn.disabled = false; btn.textContent = 'Stamp it';
 }
 async function saveTask(){
+  clearTimeout(draftTimer);
   const task = TASKS[team][idx];
-  const text = {};
-  document.querySelectorAll('#sheet .f[data-j]').forEach(el=>{ text[el.dataset.j] = el.value.trim(); });
+  const text = readFields();
   const missingPhoto = task.photo && !pending;
   const missingText  = task.fields.some((f,j)=>!text[j]);
   if(missingPhoto || missingText){
@@ -639,7 +674,8 @@ document.getElementById('cards').onclick = e=>{
   const c = e.target.closest('.card'); if(!c) return;
   idx = Number(c.dataset.i); drawTask(); show('task');
 };
-document.getElementById('backBtn').onclick = ()=>{ drawList(); show('list'); };
+document.getElementById('backBtn').onclick = async ()=>{ await saveDraft(); drawList(); show('list'); };
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) saveDraft(); });
 document.getElementById('teamChip').onclick = ()=>{
   if(locked) return;
   if(confirm('Switch to a different team? Your work stays saved.')) show('pick');
