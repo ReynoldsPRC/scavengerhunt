@@ -160,7 +160,13 @@ input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px
 
 /* ---------- staff ---------- */
 .staff{margin-top:44px;padding-top:18px;border-top:1px solid rgba(237,227,204,.15)}
-.staff button{background:none;border:none;padding:0;color:rgba(237,227,204,.45);font-size:14px;text-decoration:underline}
+.staff .link{background:none;border:none;padding:0;color:rgba(237,227,204,.45);font-size:14px;text-decoration:underline}
+.staff p{margin:10px 0}
+.urls{
+  font-family:var(--type);font-size:12px;line-height:1.75;
+  color:rgba(237,227,204,.7);white-space:pre-wrap;word-break:break-all;
+  margin:10px 0 16px;-webkit-user-select:text;user-select:text;
+}
 .warn{color:#E7B7B7;font-size:15px;margin:10px 0}
 .note{color:rgba(237,227,204,.5);font-size:14px;line-height:1.5;margin-top:8px;max-width:52ch}
 
@@ -186,8 +192,13 @@ input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px
   <div class="spines" id="spines"></div>
 
   <div class="staff">
-    <button id="showStaff">Staff options</button>
+    <button class="link" id="showStaff">Staff options</button>
     <div id="staffPanel" hidden>
+      <p class="note">One address per team. Bookmark the right one on each iPad, or make a QR code from it, and students skip this screen entirely.</p>
+      <pre class="urls" id="urlList"></pre>
+      <div class="pair">
+        <button class="btn quiet" id="copyBtn" style="color:rgba(237,227,204,.7);border-color:rgba(237,227,204,.35)">Copy all addresses</button>
+      </div>
       <p class="warn">Clearing erases every photo and answer on this iPad.</p>
       <div class="pair">
         <button class="btn quiet" id="clearBtn" style="color:#E7B7B7;border-color:#E7B7B7">Clear this iPad</button>
@@ -209,6 +220,19 @@ input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px
     <div class="pair">
       <button class="btn quiet" id="presentBtn" style="color:var(--card);border-color:rgba(237,227,204,.5)">Show our work</button>
       <button class="btn quiet" id="printBtn" style="color:rgba(237,227,204,.6);border-color:rgba(237,227,204,.3)">Print / save PDF</button>
+    </div>
+    <p><button class="link" id="showStaff2">Staff options</button></p>
+    <div id="staffPanel2" hidden>
+      <p class="note">One address per team. Bookmark the right one on each iPad, or make a QR code from it, and students never choose a team.</p>
+      <pre class="urls" id="urlList2"></pre>
+      <div class="pair">
+        <button class="btn quiet" id="copyBtn2" style="color:rgba(237,227,204,.7);border-color:rgba(237,227,204,.35)">Copy all addresses</button>
+        <button class="btn quiet" id="switchBtn" style="color:rgba(237,227,204,.7);border-color:rgba(237,227,204,.35)">Switch team</button>
+      </div>
+      <p class="warn">Clearing erases every photo and answer on this iPad.</p>
+      <div class="pair">
+        <button class="btn quiet" id="clearBtn2" style="color:#E7B7B7;border-color:#E7B7B7">Clear this iPad</button>
+      </div>
     </div>
   </div>
 </section>
@@ -369,7 +393,7 @@ const TASKS = {
    ===================================================================== */
 
 const MAX_PX = 1600, JPEG_Q = 0.82;
-let team = null, idx = 0, slideAt = 0, db = null, freshStamp = -1;
+let team = null, idx = 0, slideAt = 0, db = null, freshStamp = -1, locked = false;
 
 /* ---------- storage ---------- */
 function openDB(){
@@ -457,7 +481,10 @@ function drawPicker(){
 /* ---------- task list ---------- */
 function drawList(){
   const t = TASKS[team];
-  document.getElementById('teamChip').textContent = 'Team ' + team;
+  const chip = document.getElementById('teamChip');
+  chip.textContent = 'Team ' + team;
+  chip.style.pointerEvents = locked ? 'none' : '';
+  chip.style.opacity = locked ? '.75' : '';
   const done = t.filter((_,i)=>A[i]&&A[i].done).length;
   document.getElementById('tally').textContent = done + ' of ' + t.length + ' stamped';
   document.getElementById('cards').innerHTML = t.map((task,i)=>{
@@ -582,6 +609,25 @@ function buildPrint(){
     }).join('');
 }
 
+/* ---------- per-team addresses ---------- */
+const urlFor = n => location.origin + location.pathname + '?team=' + n;
+function buildUrlList(){
+  const txt = Array.from({length:10},(_,i)=>'Team ' + String(i+1).padStart(2,' ') + '   ' + urlFor(i+1)).join('\n');
+  ['urlList','urlList2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent = txt; });
+}
+async function copyUrls(){
+  const t = Array.from({length:10},(_,i)=>'Team ' + (i+1) + '  ' + urlFor(i+1)).join('\n');
+  try{ await navigator.clipboard.writeText(t); alert('Copied all ten addresses.'); }
+  catch(e){ alert('Copy did not work here. Select the addresses on screen and copy them by hand.'); }
+}
+async function clearIpad(){
+  if(!confirm('Erase every photo and answer on this iPad?')) return;
+  if(!confirm('Last check. This cannot be undone.')) return;
+  await wipe(); A = {}; team = null; locked = false;
+  alert('Cleared. Ready for the next class.');
+  show('pick');
+}
+
 /* ---------- wiring ---------- */
 document.getElementById('spines').onclick = async e=>{
   const b = e.target.closest('.spine'); if(!b) return;
@@ -594,7 +640,8 @@ document.getElementById('cards').onclick = e=>{
   idx = Number(c.dataset.i); drawTask(); show('task');
 };
 document.getElementById('backBtn').onclick = ()=>{ drawList(); show('list'); };
-document.getElementById('teamChip').onclick = async ()=>{
+document.getElementById('teamChip').onclick = ()=>{
+  if(locked) return;
   if(confirm('Switch to a different team? Your work stays saved.')) show('pick');
 };
 document.getElementById('presentBtn').onclick = ()=>{ slideAt=0; drawSlide(); show('present'); };
@@ -602,15 +649,17 @@ document.getElementById('printBtn').onclick = ()=>{ buildPrint(); setTimeout(()=
 document.getElementById('camIn').onchange = gotFile;
 document.getElementById('libIn').onchange = gotFile;
 document.getElementById('showStaff').onclick = ()=>{
-  const p = document.getElementById('staffPanel');
-  p.hidden = !p.hidden;
+  const p = document.getElementById('staffPanel'); p.hidden = !p.hidden;
 };
-document.getElementById('clearBtn').onclick = async ()=>{
-  if(!confirm('Erase every photo and answer on this iPad?')) return;
-  if(!confirm('Last check. This cannot be undone.')) return;
-  await wipe(); A = {}; team = null;
-  alert('Cleared. Ready for the next class.');
-  show('pick');
+document.getElementById('showStaff2').onclick = ()=>{
+  const p = document.getElementById('staffPanel2'); p.hidden = !p.hidden;
+};
+document.getElementById('clearBtn').onclick = clearIpad;
+document.getElementById('clearBtn2').onclick = clearIpad;
+document.getElementById('copyBtn').onclick = copyUrls;
+document.getElementById('copyBtn2').onclick = copyUrls;
+document.getElementById('switchBtn').onclick = ()=>{
+  if(confirm('Switch to a different team? Anything already saved is kept.')){ locked = false; show('pick'); }
 };
 
 /* ---------- boot ---------- */
@@ -623,6 +672,14 @@ document.getElementById('clearBtn').onclick = async ()=>{
     return;
   }
   drawPicker();
+  buildUrlList();
+  const fromUrl = Number(new URLSearchParams(location.search).get('team'));
+  if(fromUrl && TASKS[fromUrl]){
+    team = fromUrl; locked = true;
+    await put('meta','team',team);
+    await loadTeam(); drawList(); show('list');
+    return;
+  }
   const saved = await get('meta','team');
   if(saved && TASKS[saved]){ team = saved; await loadTeam(); drawList(); show('list'); }
 })();
