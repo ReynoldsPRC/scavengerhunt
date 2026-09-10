@@ -146,7 +146,7 @@ input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px
 
 /* ---------- present mode ---------- */
 #present{max-width:none;padding:0;background:var(--table-deep)}
-.slide{min-height:100vh;display:flex;flex-direction:column;padding:26px 30px 22px}
+.slide{height:100vh;height:100dvh;display:flex;flex-direction:column;padding:26px 30px 22px}
 .slide .cap{font-family:var(--type);font-size:14px;letter-spacing:.1em;color:rgba(237,227,204,.55)}
 .slide h2{font-family:var(--serif);font-weight:400;font-size:clamp(24px,4.2vw,40px);margin:6px 0 16px}
 .slide .frame{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
@@ -266,6 +266,10 @@ input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px
              each field: {label:"...", long:true}   long -> big text box
    ===================================================================== */
 
+/* Staff options (Clear this iPad, addresses, switch team) ask for this code.
+   Change it to anything you like. Digits only is easiest to type on an iPad. */
+const STAFF_CODE = "1832";
+
 const TASKS = {
 1:[
  {title:"Team photo",photo:true,fields:[],
@@ -297,7 +301,7 @@ const TASKS = {
  {title:"Find a book on the shelf",photo:true,fields:[{label:"Your topic"},{label:"Call number"},{label:"Title"}],
   body:"Pick a topic your team is actually interested in &mdash; anything at all. From the library home page, search for a book about it held at <b>Parham</b>. Write down the call number, then go find the book on the shelf. Photograph a teammate holding it.<br><br>If the search comes back empty, try a broader word.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."},
  {title:"Find a newspaper article",photo:true,fields:[{label:"Your topic"},{label:"Article title"},{label:"MLA citation",long:true}],
-  body:"Pick a topic your team is interested in. Go to <b>Research &rarr; Databases</b> and open <b>Access World News</b>. Search for your topic and open a news story about it. Screenshot the MLA citation.<br><br>[Hint: the citation option is the <b>&ldquo;C</b> near the top of the screen.]"},
+  body:"Pick a topic your team is interested in. Go to <b>Research &rarr; Databases</b> and open <b>Access World News</b>. Search for your topic and open a news story about it. Screenshot the MLA citation.<br><br>[Hint: the citation option is the <b>&ldquo;C&rdquo;</b> icon near the top of the screen.]"},
  {title:"Checking out books",photo:true,fields:[{label:"How many at one time?"},{label:"What do you need?"}],
   body:"Ask a staff member at the desk near the entrance how many books you can have out at once and what you need in order to borrow them. Photograph your team with the staff member &mdash; ask first."},
  {title:"Graphic novels",photo:true,fields:[{label:"Title"},{label:"Where in the library is it?"}],
@@ -325,7 +329,7 @@ const TASKS = {
  {title:"Tutoring",photo:true,fields:[{label:"When can you get help with writing or math?"}],
   body:"Find the Tutoring Services area. Work out when you could come in for help with a writing assignment or a math class. Photograph a teammate next to the hours sign."},
  {title:"The reference collection",photo:true,fields:[{label:"What is the set called?"},{label:"How many volumes?"}],
-  body:"Find the reference collection. These books do not leave the library &mdash; you use them here and put them back. Find the multi-volume set with the most volumes you can spot, and photograph a teammate holding volume 1.<br><br>When you are finished, leave the book on a cart or hand it to a staff member. Do not put it back on the shelf yourself."}
+  body:"Find the reference collection. These books do not leave the library &mdash; you use them here and put them back. Find the multi-volume set with the most volumes you can spot, and photograph a teammate holding volume 1. Put it back where you found it."}
 ],
 6:[
  {title:"Team photo",photo:true,fields:[],
@@ -442,6 +446,13 @@ async function shrink(file){
 
 /* ---------- screens ---------- */
 function show(id){
+  if(id!=='task'){
+    /* Leaving the task screen: drop the on-screen draft so a later
+       background save can't write it into another team's record. */
+    clearTimeout(draftTimer);
+    document.getElementById('sheet').innerHTML = '';
+    pending = null;
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
   window.scrollTo(0,0);
 }
@@ -473,7 +484,7 @@ function drawList(){
       ? `<span class="stamp${i===freshStamp?' fresh':''}"><b>DONE</b><span>${esc(a.when)}</span></span>`
       : '';
     return `<button class="card${on?' done':''}" data-i="${i}" data-n="${i===0?'\u2605':i}">
-      <h3>${esc(task.title)}</h3><p>${on?'Tap to review or redo':started?'Saved \u2014 not stamped yet':'Not started'}</p>${stamp}</button>`;
+      <h3>${task.title}</h3><p>${on?'Tap to review or redo':started?'Saved \u2014 not stamped yet':'Not started'}</p>${stamp}</button>`;
   }).join('');
   freshStamp = -1;
   document.getElementById('presentBtn').disabled = done===0;
@@ -523,7 +534,7 @@ function drawTask(){
   }).join('');
   document.getElementById('sheet').innerHTML = `
     <p class="num">${idx===0?'To start':'Task '+idx+' of '+(TASKS[team].length-1)}</p>
-    <h2>${esc(task.title)}</h2>
+    <h2>${task.title}</h2>
     <div class="body">${task.body}</div>
     ${task.photo?`<hr class="rule">${shot}
       <div class="pair">
@@ -594,7 +605,7 @@ function drawSlide(){
     `<div class="ans"><em>${f.label}</em>${esc((a.text&&a.text[j])||'\u2014')}</div>`).join('');
   document.getElementById('slide').innerHTML = `
     <div class="cap">Team ${team}</div>
-    <h2>${esc(task.title)}</h2>
+    <h2>${task.title}</h2>
     <div class="frame">${a.photo?`<img id="slideimg" alt="">`:`<span class="none">no photo</span>`}</div>
     ${answers}
     <div class="nav">
@@ -617,7 +628,7 @@ function buildPrint(){
       const a = A[i]; if(!a||!a.done) return '';
       const ans = task.fields.map((f,j)=>`<p><b>${f.label}:</b> ${esc((a.text&&a.text[j])||'')}</p>`).join('');
       const img = a.photo?`<img src="${URL.createObjectURL(a.photo)}" alt="">`:'';
-      return `<div class="prt"><h3>${esc(task.title)}</h3>${img}${ans}</div>`;
+      return `<div class="prt"><h3>${task.title}</h3>${img}${ans}</div>`;
     }).join('');
 }
 
@@ -635,7 +646,9 @@ async function copyUrls(){
 async function clearIpad(){
   if(!confirm('Erase every photo and answer on this iPad?')) return;
   if(!confirm('Last check. This cannot be undone.')) return;
-  await wipe(); A = {}; team = null; locked = false;
+  clearTimeout(draftTimer);
+  document.getElementById('sheet').innerHTML = ''; pending = null; idx = 0;
+  await wipe(); A = {}; team = null; locked = false; staffOk = false;
   alert('Cleared. Ready for the next class.');
   show('pick');
 }
@@ -661,12 +674,20 @@ document.getElementById('presentBtn').onclick = ()=>{ slideAt=0; drawSlide(); sh
 document.getElementById('printBtn').onclick = ()=>{ buildPrint(); setTimeout(()=>window.print(),150); };
 document.getElementById('camIn').onchange = gotFile;
 document.getElementById('libIn').onchange = gotFile;
-document.getElementById('showStaff').onclick = ()=>{
-  const p = document.getElementById('staffPanel'); p.hidden = !p.hidden;
-};
-document.getElementById('showStaff2').onclick = ()=>{
-  const p = document.getElementById('staffPanel2'); p.hidden = !p.hidden;
-};
+let staffOk = false;
+function staffToggle(panelId){
+  const p = document.getElementById(panelId);
+  if(!p.hidden){ p.hidden = true; return; }
+  if(!staffOk){
+    const c = prompt('Staff code:');
+    if(c === null) return;
+    if(c.trim() !== STAFF_CODE){ alert('That is not the staff code.'); return; }
+    staffOk = true;
+  }
+  p.hidden = false;
+}
+document.getElementById('showStaff').onclick = ()=>staffToggle('staffPanel');
+document.getElementById('showStaff2').onclick = ()=>staffToggle('staffPanel2');
 document.getElementById('clearBtn').onclick = clearIpad;
 document.getElementById('clearBtn2').onclick = clearIpad;
 document.getElementById('copyBtn').onclick = copyUrls;
@@ -674,6 +695,13 @@ document.getElementById('copyBtn2').onclick = copyUrls;
 document.getElementById('switchBtn').onclick = ()=>{
   if(confirm('Switch to a different team? Anything already saved is kept.')){ locked = false; show('pick'); }
 };
+
+/* ---------- offline ---------- */
+/* sw.js keeps a copy of this page on the iPad so a reload works with no network.
+   If sw.js is missing, nothing breaks — the page just needs network to reload. */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
 
 /* ---------- boot ---------- */
 (async function(){
