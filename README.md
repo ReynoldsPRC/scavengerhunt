@@ -34,7 +34,7 @@ Use the QR codes taped to the cases, or bookmark the right address on each iPad.
 
 To see all the addresses at any time: **Staff options → Copy all addresses**, on either the team-picker screen or the task list.
 
-**Staff options ask for a code.** It is `1832` unless someone has changed it. This is not security — it exists so a student can't tap Clear this iPad by accident. The code lives near the top of `index.html`, just above the tasks, if you want to change it.
+**Staff options open with a tap.** There is no code. Clear this iPad still asks for confirmation twice, which is what actually stops an accidental wipe.
 
 **During.** Students tap a task, read it, take a photo or grab a screenshot, type their answers, and tap **Stamp it**. Work saves continuously, so a refresh or an accidental tab close loses nothing.
 
@@ -167,7 +167,6 @@ Photos and answers are stored in the iPad's browser storage, under the address t
 | Change doesn't appear | GitHub cache. Wait ten minutes, or check in a private window. |
 | Keyboard won't open after taking a photo | Known iOS quirk. Refresh the page; work is already saved. |
 | Page says it cannot save work | Safari private browsing is on. Turn it off and reload. |
-| Staff options won't open | The code is `1832` (or whatever it was changed to in `index.html`). |
 | Page won't reload with wifi off | The iPad never loaded it with wifi on, so there is no saved copy yet. Load it once on a good connection. |
 | Opens straight to a team instead of the picker | That browser has a team stored from earlier. Tap the team chip at the top, or clear the iPad. |
 | Page won't load at all | Check the iPad is on a network, and that a content filter isn't blocking `reynoldsprc.github.io`. |

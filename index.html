@@ -266,10 +266,6 @@ input.f:focus,textarea.f:focus{outline:2px solid var(--stamp);outline-offset:1px
              each field: {label:"...", long:true}   long -> big text box
    ===================================================================== */
 
-/* Staff options (Clear this iPad, addresses, switch team) ask for this code.
-   Change it to anything you like. Digits only is easiest to type on an iPad. */
-const STAFF_CODE = "1832";
-
 const TASKS = {
 1:[
  {title:"Team photo",photo:true,fields:[],
@@ -648,7 +644,7 @@ async function clearIpad(){
   if(!confirm('Last check. This cannot be undone.')) return;
   clearTimeout(draftTimer);
   document.getElementById('sheet').innerHTML = ''; pending = null; idx = 0;
-  await wipe(); A = {}; team = null; locked = false; staffOk = false;
+  await wipe(); A = {}; team = null; locked = false;
   alert('Cleared. Ready for the next class.');
   show('pick');
 }
@@ -674,17 +670,9 @@ document.getElementById('presentBtn').onclick = ()=>{ slideAt=0; drawSlide(); sh
 document.getElementById('printBtn').onclick = ()=>{ buildPrint(); setTimeout(()=>window.print(),150); };
 document.getElementById('camIn').onchange = gotFile;
 document.getElementById('libIn').onchange = gotFile;
-let staffOk = false;
 function staffToggle(panelId){
   const p = document.getElementById(panelId);
-  if(!p.hidden){ p.hidden = true; return; }
-  if(!staffOk){
-    const c = prompt('Staff code:');
-    if(c === null) return;
-    if(c.trim() !== STAFF_CODE){ alert('That is not the staff code.'); return; }
-    staffOk = true;
-  }
-  p.hidden = false;
+  p.hidden = !p.hidden;
 }
 document.getElementById('showStaff').onclick = ()=>staffToggle('staffPanel');
 document.getElementById('showStaff2').onclick = ()=>staffToggle('staffPanel2');
